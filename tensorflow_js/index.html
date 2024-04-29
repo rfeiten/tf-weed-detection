@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Accelerating Weed Recognition in Agriculture with Embedded AI Models</title>
+    <meta charset="utf-8">
+    <!-- Import the webpage's stylesheet -->
+    <link rel="stylesheet" href="style.css">
+  </head>  
+  <body>
+    <h1>Multiple object detection(Common Weeds in Brazilian Flora) using Azure Custom Vision exported JS model</h1>
+
+    <p>Wait for the model to load before clicking the button to enable the webcam - at which point it will become visible to use.</p>
+    
+    <section id="demos" class="invisible">
+
+      <div id="liveView" class="camView">
+        <button id="webcamButton">Enable Webcam</button>
+        <video id="webcam" autoplay muted width="1024" height="768"></video>
+      </div>
+    </section>
+
+	<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.12.0/dist/tf.min.js"></script>
+	<script src="https://unpkg.com/@microsoft/customvision-tfjs@1.3.0"></script>
+    
+    <!-- Import the page's JavaScript to do some stuff -->
+    <script src="script.js" defer></script>
+  </body>
+</html>
