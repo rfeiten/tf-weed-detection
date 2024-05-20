@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Custom Vision classification sample</title>
+		<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.12.0/dist/tf.min.js"></script>
+		<script src="https://unpkg.com/@microsoft/customvision-tfjs@1.3.0"></script>
+        <link rel="stylesheet" href="style.css">
+	</head>
+    <script>
+
+        var children = [];
+
+        var width = -1;
+        var height = -1;
+        const maxWidth = 640;
+        const maxHeight = 480;
+
+        const plantList = `
+        Amaranthus_Palmeri
+        Conyza_Bonariensis
+        Digitaria_Insularis
+        Eleusine_Indica
+        Lolium_Multiflorum
+        `;
+
+        // Convert the list to an array
+        const labels = Array.from(plantList.trim().split('\n'));
+
+
+        function buildDetectedObjects(detected_scores, threshold, imageWidth, imageHeight, detected_boxes, detected_classes) {
+            const detectionObjects = [];
+            detected_scores.forEach((score, i) => {
+            if (score >= threshold) {
+                const bbox = [];
+                bbox[1] = detected_boxes[i][1] * imageHeight;
+                bbox[0] = detected_boxes[i][0] * imageWidth;;
+                bbox[3] = detected_boxes[i][3] * imageHeight;
+                bbox[2] = detected_boxes[i][2] * imageWidth;
+                console.log(bbox);
+                detectionObjects.push({
+                class: detected_classes[i],
+                score: score.toFixed(4),
+                bbox: bbox
+                })
+            }
+            })
+
+            return detectionObjects;
+        }
+
+        function load(event) {
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const image_view = document.getElementById('image_view');
+                image_view.src = e.target.result;
+                width = image_view.width;
+                height = image_view.height;
+                console.info(`Width: ${width} Height: ${height}`);
+            };
+            reader.readAsDataURL(event.target.files[0]);
+        }
+
+        async function run() {
+            const model = new cvstfjs.ClassificationModel();
+            await model.loadModelAsync('model.json');
+            const result = await model.executeAsync(document.getElementById('image_view'));
+            let detected_boxes, detected_scores, detected_classes;
+            [detected_boxes, detected_scores, detected_classes] = result;
+            predict(detected_boxes, detected_scores, detected_classes);
+        }
+
+        function resizeImage(src, maxWidth = 640, maxHeight = 480) {
+            
+            var img = new Image();
+            
+            img.onload = function() {
+                var width = this.width;
+                var height = this.height;
+
+                // calculate the width and height, constraining the proportions
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = Math.round(height * maxWidth / width);
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width = Math.round(width * maxHeight / height);
+                        height = maxHeight;
+                    }
+                }
+
+                var canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(this, 0, 0, width, height);
+                return canvas.toDataURL();
+            }
+
+        }
+
+        async function predict(detected_boxes, detected_scores, detected_classes) {
+    
+            for (let i = 0; i < children.length; i++) {
+                liveView.removeChild(children[i]);
+            }
+
+            children.splice(0);
+            
+            const liveView = document.getElementById('liveView');
+            const demosSection = document.getElementById('demos');
+
+            // const h = video.videoHeight;
+            // const w = video.videoWidth;
+            
+            var detected_objects = buildDetectedObjects(detected_scores, 0.6, width, height, detected_boxes, detected_classes);
+
+            // Now lets loop through predictions and draw them to the live view if
+            // they have a high confidence score.
+            for (let n = 0; n < detected_objects.length; n++) {
+
+                const p = document.createElement('p');
+                p.innerText =  labels[detected_objects[n].class]  + ' - with ' 
+                    + Math.round(parseFloat(detected_objects[n].score) * 100) 
+                    + '% confidence.';
+                p.style = 'margin-left: ' + (detected_objects[n].bbox[0] + 100) + 'px; margin-top: '
+                    + (detected_objects[n].bbox[1] - 10) + 'px; width: ' 
+                    + ((detected_objects[n].bbox[2] - 10) /2) + 'px; top: 20px; left: 0;';
+
+                const highlighter = document.createElement('div');
+                highlighter.setAttribute('class', 'highlighter');
+                highlighter.style = 'left: ' + (detected_objects[n].bbox[0] +100) + 'px; top: '
+                    + (20 + detected_objects[n].bbox[1]) + 'px; width: ' 
+                    + (detected_objects[n].bbox[2] / 2) + 'px; height: '
+                    + detected_objects[n].bbox[3] + 'px;';
+
+                liveView.appendChild(highlighter);
+                liveView.appendChild(p);
+                console.log(`Last Precision: ${detected_scores[n]}`);
+                console.log(`Last bbox: ${detected_objects[n].bbox[0]}, ${detected_objects[n].bbox[1]}, ${detected_objects[n].bbox[2]}, ${detected_objects[n].bbox[3]}`);
+                children.push(highlighter);
+                children.push(p);
+            }
+        }   
+    </script>
+	<body>
+        <section id="demos" class="invisible"></section>
+            <div id="liveView" class="camView"></div>
+                <input id="image_file" type="file" onChange="load(event)" />
+                <img id="image_view" onLoad="run()" />
+            </div>
+        </section>
+	</body>
+
+</html>

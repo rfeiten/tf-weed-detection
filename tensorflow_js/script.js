@@ -2,7 +2,9 @@ const video = document.getElementById('webcam');
 const liveView = document.getElementById('liveView');
 const demosSection = document.getElementById('demos');
 const enableWebcamButton = document.getElementById('webcamButton');
+const disableButton = document.getElementById('disableButton');
 
+var videoPaused = false;
 // Check if webcam access is supported.
 function getUserMediaSupported() {
     return !!(navigator.mediaDevices &&
@@ -14,9 +16,15 @@ function getUserMediaSupported() {
   // define in the next step.
   if (getUserMediaSupported()) {
     enableWebcamButton.addEventListener('click', enableCam);
+    disableButton.addEventListener('click', disableCam);
   } else {
     console.warn('getUserMedia() is not supported by your browser');
   }
+
+function disableCam(event) {
+  video.pause();
+  videoPaused = true;
+}
   
 function enableCam(event) {
     // Only continue if the COCO-SSD has finished loading.
@@ -29,7 +37,14 @@ function enableCam(event) {
     
     // getUsermedia parameters to force video but not audio.
     const constraints = {
-      video: true
+      video: {
+        width: {exact: 640},
+        height: {exact: 480},
+        frameRate: {
+          ideal: 4,
+          max: 4
+        }
+      }
     };
   
     // Activate the webcam stream.
@@ -126,9 +141,11 @@ async function predictWebcam() {
 
         liveView.appendChild(highlighter);
         liveView.appendChild(p);
+        console.log(`Last bbox: ${detected_objects[n].bbox[0]}, ${detected_objects[n].bbox[1]}, ${detected_objects[n].bbox[2]}, ${detected_objects[n].bbox[3]}`)
         children.push(highlighter);
         children.push(p);
       }
      // Call this function again to keep predicting when the browser is ready.
-     window.requestAnimationFrame(predictWebcam);
+     if(!videoPaused) 
+      window.requestAnimationFrame(predictWebcam);
 }
