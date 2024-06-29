@@ -18,7 +18,11 @@ section {
   transition: opacity 500ms ease-in-out;
 }
 
-.removed {
+#webcamButton.removed {
+  display: none;
+}
+
+.hidden { 
   display: none;
 }
 
@@ -31,7 +35,6 @@ section {
   float: left;
   width: calc(100% - 20px);
   margin: 10px;
-  cursor: pointer;
 }
 
 .camView p {
@@ -53,4 +56,40 @@ section {
 
 #image_file {
   display: block;
+}
+
+.slider {
+  width: 100px;
+  height: 100px;
+  background: #0000;
+  outline: none;
+  opacity: 0.7;
+  -webkit-transform: rotate(-90deg);
+  transform: rotate(-90deg);
+  border-radius: 12px;
+}
+
+.slider:hover {
+  opacity: 1;
+}
+
+input[type=range] {
+  writing-mode: vertical-lr;
+  direction: ltr;
+  vertical-align: middle;
+  float: left;
+}
+
+
+button {
+  background-color: #4CAF50; /* Green background */
+  border: none;
+  color: white;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
 }

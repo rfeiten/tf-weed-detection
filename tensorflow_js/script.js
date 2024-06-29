@@ -3,6 +3,21 @@ const liveView = document.getElementById('liveView');
 const demosSection = document.getElementById('demos');
 const enableWebcamButton = document.getElementById('webcamButton');
 const disableButton = document.getElementById('disableButton');
+const enableButton = document.getElementById('enableButton');
+const slider = document.getElementById("threshold");
+const sliderOutput = document.getElementById("slider-val");
+var globalThreshold = slider.value;
+var globalLogFile = "";
+sliderOutput.innerHTML = globalThreshold;
+
+slider.onchange = function() {
+  globalThreshold = slider.value;
+  sliderOutput.innerHTML = globalThreshold;
+}
+
+function logMessage(message) {
+    globalLogFile += message + "\n"; 
+}
 
 var videoPaused = false;
 // Check if webcam access is supported.
@@ -16,6 +31,7 @@ function getUserMediaSupported() {
   // define in the next step.
   if (getUserMediaSupported()) {
     enableWebcamButton.addEventListener('click', enableCam);
+    enableButton.addEventListener('click', resumeCam);
     disableButton.addEventListener('click', disableCam);
   } else {
     console.warn('getUserMedia() is not supported by your browser');
@@ -24,6 +40,50 @@ function getUserMediaSupported() {
 function disableCam(event) {
   video.pause();
   videoPaused = true;
+  enableButton.classList.remove("hidden");
+  disableButton.classList.add("hidden");
+  saveLogs();
+}
+
+function resumeCam(event) { 
+  enableButton.classList.remove("hidden");
+  disableButton.classList.remove("hidden");
+  video.play(); 
+  videoPaused = false;
+  enableCam();
+}
+
+function generateUniqueID() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+function saveScreenshot(uid) {
+  // Create canvas
+  var canvas = document.createElement('canvas');
+  canvas.width = 640; // video width
+  canvas.height = 480; // video height
+
+  // Get context
+  var context = canvas.getContext('2d');
+
+  // Draw image to canvas
+  context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  // Convert image to base64 string
+  var base64Image = canvas.toDataURL('image/png');
+  //localStorage.setItem("imgData", base64Image);
+  canvas.toBlob(function(blob) {
+    saveAs(blob, `${uid}.png`);
+  });
+}
+
+function saveLogs() {
+  var blob = new Blob([globalLogFile], {type: "text/plain;charset=utf-8"});
+  var url = URL.createObjectURL(blob);
+  var link = document.createElement("a");
+  link.download = "identification-logs.txt";
+  link.href = url;
+  link.click();
 }
   
 function enableCam(event) {
@@ -33,7 +93,8 @@ function enableCam(event) {
     }
     
     // Hide the button once clicked.
-    event.target.classList.add('removed');  
+    event.target.classList.add('removed');
+    disableButton.classList.remove('hidden');
     
     // getUsermedia parameters to force video but not audio.
     const constraints = {
@@ -118,14 +179,15 @@ async function predictWebcam() {
 
     children.splice(0);
     
-    var detected_objects = buildDetectedObjects(detected_scores, 0.6, w, h, detected_boxes, detected_classes);
+    var detected_objects = buildDetectedObjects(detected_scores, globalThreshold, w, h, detected_boxes, detected_classes);
 
     // Now lets loop through predictions and draw them to the live view if
     // they have a high confidence score.
     for (let n = 0; n < detected_objects.length; n++) {
 
         const p = document.createElement('p');
-        p.innerText =  labels[detected_objects[n].class]  + ' - with ' 
+        var labelClass = labels[detected_objects[n].class];
+        p.innerText =  labelClass  + ' - with ' 
             + Math.round(parseFloat(detected_objects[n].score) * 100) 
             + '% confidence.';
         p.style = 'margin-left: ' + detected_objects[n].bbox[0] + 'px; margin-top: '
@@ -141,11 +203,13 @@ async function predictWebcam() {
 
         liveView.appendChild(highlighter);
         liveView.appendChild(p);
-        console.log(`Last bbox: ${detected_objects[n].bbox[0]}, ${detected_objects[n].bbox[1]}, ${detected_objects[n].bbox[2]}, ${detected_objects[n].bbox[3]}`)
+        var uid = generateUniqueID();
+        logMessage(`${labelClass} | ${uid} | Last bbox: ${detected_objects[n].bbox[0]}, ${detected_objects[n].bbox[1]}, ${detected_objects[n].bbox[2]}, ${detected_objects[n].bbox[3]}`);
+        saveScreenshot(uid);
         children.push(highlighter);
         children.push(p);
       }
      // Call this function again to keep predicting when the browser is ready.
-     if(!videoPaused) 
+    if(!videoPaused) 
       window.requestAnimationFrame(predictWebcam);
 }
